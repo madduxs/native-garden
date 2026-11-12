@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Native Garden</title>
+<meta name="description" content="Map a native garden in 3D: what's growing, when it blooms, and which plants are native where you live.">
+<!--
+    The page skeleton. Everything inside is filled in by JavaScript (js/main.js
+    and the ui/ modules); this file only says where things go.
+
+    The "importmap" below lets the code write `import * as THREE from 'three'`
+    and have the browser find the file in vendor/. No build step needed.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+<script type="importmap">
+{
+    "imports": {
+        "three": "./vendor/three.module.min.js",
+        "three/addons/": "./vendor/addons/"
+    }
+}
+</script>
+</head>
+<body class="no-garden home-open">
+
+<!-- The 3D view fills the whole window; the panels float on top of it. -->
+<div id="stage"></div>
+
+<header id="topbar">
+    <div class="brand panel">
+        <button id="gardenBtn" class="gardenbtn" type="button" title="Switch gardens, settings, sign out">
+            <h1 id="title">Native Garden</h1>
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        </button>
+        <div class="sub"><span id="dataChip" class="chip dot warn">Loading</span><span class="site" id="siteSize"></span></div>
+    </div>
+    <div id="monthbar" class="panel">
+        <div class="mname" id="mname" aria-live="polite"></div>
+        <div class="months" id="months" role="group" aria-label="Month"></div>
+        <button class="iconbtn" id="play" type="button" aria-label="Play through the year" title="Play through the year">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path id="playIcon" d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg>
+        </button>
+        <label class="years" title="See trees and shrubs grown this many years from now">
+            <span>Growth</span>
+            <select id="years" aria-label="Years from now">
+                <option value="0">Now</option>
+                <option value="1">+1 yr</option>
+                <option value="2">+2 yrs</option>
+                <option value="3">+3 yrs</option>
+                <option value="5">+5 yrs</option>
+                <option value="10">+10 yrs</option>
+                <option value="20">+20 yrs</option>
+            </select>
+        </label>
+    </div>
+</header>
+
+<aside id="side" class="panel" aria-label="Garden lists">
+    <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tab-now" aria-selected="true" aria-controls="pane-now" type="button" title="This month">Now</button>
+        <button class="tab" role="tab" id="tab-cal" aria-selected="false" aria-controls="pane-cal" type="button" title="Bloom and care calendar">Calendar</button>
+        <button class="tab" role="tab" id="tab-chk" aria-selected="false" aria-controls="pane-chk" type="button" title="Garden Check">Check</button>
+        <button class="tab" role="tab" id="tab-inv" aria-selected="false" aria-controls="pane-inv" type="button" title="Inventory: everything in the garden">Items</button>
+        <button class="tab" role="tab" id="tab-lib" aria-selected="false" aria-controls="pane-lib" type="button">Library</button>
+        <button class="iconbtn" id="sheetToggle" type="button" aria-label="Collapse panel" aria-expanded="true">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        </button>
+    </div>
+    <div class="pane" id="pane-now" role="tabpanel" aria-labelledby="tab-now"></div>
+    <div class="pane" id="pane-cal" role="tabpanel" aria-labelledby="tab-cal" hidden></div>
+    <div class="pane" id="pane-chk" role="tabpanel" aria-labelledby="tab-chk" hidden></div>
+    <div class="pane" id="pane-inv" role="tabpanel" aria-labelledby="tab-inv" hidden></div>
+    <div class="pane" id="pane-lib" role="tabpanel" aria-labelledby="tab-lib" hidden></div>
+</aside>
+
+<aside id="detail" class="panel" aria-label="Details" hidden></aside>
+
+<div id="toolbar">
+    <div class="tgroup panel" role="group" aria-label="Camera">
+        <button class="tbtn" data-view="3d" type="button" aria-pressed="true">3D</button>
+        <button class="tbtn" data-view="plan" type="button" aria-pressed="false">Plan</button>
+        <button class="tbtn" data-view="eye" type="button" aria-pressed="false">Eye level</button>
+    </div>
+    <div class="tgroup panel" role="group" aria-label="Show">
+        <button class="tbtn" id="tLabels" type="button" aria-pressed="true">Labels</button>
+        <button class="tbtn" id="tMature" type="button" aria-pressed="false">Mature size</button>
+        <button class="tbtn" id="tPlanned" type="button" aria-pressed="true">Planned</button>
+        <button class="tbtn" id="tWind" type="button" aria-pressed="false">Wind</button>
+        <button class="tbtn" id="tSun" type="button" aria-pressed="false" aria-controls="sunPanel">Sun map</button>
+    </div>
+    <div class="tgroup panel" role="group" aria-label="Edit">
+        <button class="tbtn edit" id="tEdit" type="button" aria-pressed="false">Edit layout</button>
+        <button class="tbtn add" id="tAdd" type="button">Add</button>
+        <button class="tbtn" id="tData" type="button" aria-expanded="false" aria-controls="dataMenu">Share</button>
+    </div>
+</div>
+
+<div id="dataMenu" class="panel" hidden></div>
+<!-- Color key and time-of-day slider for the sun map (js/ui/sunpanel.js). -->
+<div id="sunPanel" class="panel" aria-label="Sun and shade" hidden></div>
+<div id="notice" class="panel" hidden></div>
+
+<!-- The home screen: welcome, sign-in, garden list, new garden, settings (js/ui/gardens.js). -->
+<div id="home" role="dialog" aria-modal="true" aria-label="Gardens">
+    <div id="homeCard" class="panel"></div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="dragTip" hidden></div>
+<input type="file" id="importFile" accept=".json,application/json" class="sr" tabindex="-1" aria-hidden="true">
+<input type="file" id="homeImportFile" accept=".json,application/json" class="sr" tabindex="-1" aria-hidden="true">
+
+<noscript><p style="padding:2rem">This app needs JavaScript turned on.</p></noscript>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

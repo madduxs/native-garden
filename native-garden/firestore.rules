@@ -1,0 +1,36 @@
+rules_version = '2';
+
+// Firestore security rules: who may read and write what.
+//
+// Paste this whole file into Firebase console → Firestore Database → Rules,
+// then press Publish. (Steps are in README.md.)
+//
+// Everything a person saves lives under users/{their user id}/...
+//   users/{uid}/gardens/{gardenId}
+//   users/{uid}/gardens/{gardenId}/items/{itemId}
+//   users/{uid}/library/{entryId}
+//
+// Rule 1: you can read and write your own things, and only yours.
+// Rule 2: a garden whose settings say shared: true (the owner turned on
+//         "Anyone with the link can view") can be READ by anyone, signed in
+//         or not, along with its items. Nobody but the owner can ever write.
+// Anything not matched here is denied.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Rule 1: owners.
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Rule 2: share links (read-only).
+    match /users/{uid}/gardens/{gardenId} {
+      allow get: if resource.data.shared == true;
+
+      match /items/{itemId} {
+        // Look at the garden this item belongs to: is it shared?
+        allow read: if get(/databases/$(database)/documents/users/$(uid)/gardens/$(gardenId)).data.shared == true;
+      }
+    }
+  }
+}

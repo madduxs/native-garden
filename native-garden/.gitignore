@@ -1,0 +1,7 @@
+# Personal garden downloads: keep them out of the public repo
+/garden*.json
+/backups/
+
+# System clutter
+.DS_Store
+Thumbs.db
