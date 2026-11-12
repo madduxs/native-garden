@@ -20,12 +20,13 @@
  */
 
 export const FIREBASE_CONFIG = {
-    apiKey: '',
-    authDomain: '',          // looks like: your-project-id.firebaseapp.com
-    projectId: '',           // looks like: your-project-id
-    storageBucket: '',
-    messagingSenderId: '',
-    appId: '',
+    apiKey: 'AIzaSyAzPKNpDM6cDDo_fJbH0qN-leLKVdDKGM4',
+    authDomain: 'native-garden-ab54c.firebaseapp.com',
+    projectId: 'native-garden-ab54c',
+    storageBucket: 'native-garden-ab54c.firebasestorage.app',
+    messagingSenderId: '774963840915',
+    appId: '1:774963840915:web:d49f4b1ba07ac6c5a84a66',
+    // (Firebase also shows a measurementId. It's only for Google Analytics, which this app doesn't use.)
 };
 
 /*
