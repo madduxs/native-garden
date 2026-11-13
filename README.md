@@ -1,11 +1,9 @@
-# Native Garden Planner/Tracker
+# Native Garden Planner/Tracker <!-- omit from toc -->
 
-## Table of Contents
+## Table of Contents <!-- omit from toc -->
 
-- [Native Garden Planner/Tracker](#native-garden-plannertracker)
-  - [Table of Contents](#table-of-contents)
-  - [About](#about)
-  - [Future Features](#future-features)
+- [About](#about)
+- [Future Features](#future-features)
 
 ## About
 
