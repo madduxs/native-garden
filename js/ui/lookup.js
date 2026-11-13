@@ -17,7 +17,7 @@ import { taxonUrl, nearbyUrl } from '../library/inat.js';
 import { recordsUrl } from '../library/gbif.js';
 import { placeKey } from '../model.js';
 import { h, MSHORT, fmtRange } from '../util.js';
-import { nativeChip } from './common.js';
+import { nativeChip, photoFigure } from './common.js';
 
 const checks = new Map();   // key → { status: 'loading' | 'done' | 'error', result }
 
@@ -100,6 +100,13 @@ export function checkBlock(target, opts = {}) {
     if (r.bloom && r.bloom.total > 0) {
         box.append(...histogram(r.bloom.counts));
         box.append(h('p', { class: 'note', text: `${r.bloom.total.toLocaleString()} flowering observations within ${r.bloom.radius} km` + (r.bloom.range ? `, mostly ${fmtRange(r.bloom.range)}.` : '; too few to judge bloom months.') }));
+        if (Array.isArray(r.bloom.photos) && r.bloom.photos.length) {
+            box.append(h('div', { class: 'bloom-photos' }, r.bloom.photos.map(photo => h('div', { class: 'bloom-photo' },
+                photoFigure(photo.url, `${photo.attribution} · License: ${photo.license}`, `${target.sci || 'Plant'} in bloom`),
+                h('a', { class: 'thin-link', href: photo.observationUrl, target: '_blank', rel: 'noopener' }, 'View observation')))));
+        } else if (Array.isArray(r.bloom.photos)) {
+            box.append(h('p', { class: 'note', text: 'No nearby flowering photos with a reusable license were found.' }));
+        }
         if (opts.onUseBloom && r.bloom.range && JSON.stringify(r.bloom.range) !== JSON.stringify(opts.currentBloom)) {
             box.append(h('p', {}, h('button', { class: 'linkbtn', type: 'button', text: `Use ${fmtRange(r.bloom.range)} as bloom months`, onclick: () => opts.onUseBloom(r.bloom.range) })));
         }

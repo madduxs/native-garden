@@ -11,6 +11,7 @@
  *   getTaxon()          photo, Wikipedia summary, family, native/introduced status
  *   findTaxonId()       scientific name → iNaturalist taxon number
  *   floweringByMonth()  how many "flowering" observations per month near the garden
+ *   floweringPhotos()  licensed photos from nearby flowering observations
  *   findPlaceIds()      the iNaturalist ids for the garden's state and county
  *
  * Photos belong to the people who took them. We always show the photo's
@@ -20,6 +21,11 @@ import { fetchJSON, stripHtml } from '../util.js';
 
 const API = 'https://api.inaturalist.org/v1';
 const PLANTAE = 47126;     // iNaturalist's id for the plant kingdom, so searches only return plants
+const PHOTO_LICENSES = new Map([
+    ['cc0', 'CC0'],
+    ['cc-by', 'CC BY'],
+    ['cc-by-sa', 'CC BY-SA'],
+]);
 
 function photoOf(t) {
     const p = t && t.default_photo;
@@ -112,6 +118,43 @@ export async function floweringByMonth(taxonId, lat, lng, radiusKm, signal) {
     const js = await fetchJSON(u, { signal });
     const months = (js.results && js.results.month_of_year) || {};
     return Array.from({ length: 12 }, (_, i) => Number(months[i + 1]) || 0);
+}
+
+/*
+ * A few nearby observations annotated as flowering. Only photos with licenses
+ * that permit reuse with attribution are included.
+ */
+export async function floweringPhotos(taxonId, lat, lng, radiusKm, signal) {
+    const params = new URLSearchParams({
+        taxon_id: String(taxonId),
+        term_id: '12',
+        term_value_id: '13',
+        verifiable: 'true',
+        photos: 'true',
+        lat: String(lat),
+        lng: String(lng),
+        radius: String(radiusKm),
+        per_page: '6',
+        order: 'desc',
+        order_by: 'observed_on',
+    });
+    const js = await fetchJSON(`${API}/observations?${params}`, { signal });
+    const photos = [];
+    for (const observation of js.results || []) {
+        for (const photo of observation.photos || []) {
+            const license = PHOTO_LICENSES.get(photo.license_code);
+            if (typeof photo.url !== 'string' || !license) continue;
+            photos.push({
+                url: photo.url.replace('/square.', '/medium.'),
+                attribution: photo.attribution || 'iNaturalist contributor',
+                license,
+                observationUrl: observation.uri || `https://www.inaturalist.org/observations/${observation.id}`,
+            });
+            break;
+        }
+        if (photos.length === 6) break;
+    }
+    return photos;
 }
 
 /*

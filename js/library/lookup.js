@@ -12,7 +12,7 @@
  *
  * Each part is best-effort: if one service is down, the others still show.
  */
-import { getTaxon, findTaxonId, floweringByMonth } from './inat.js';
+import { getTaxon, findTaxonId, floweringByMonth, floweringPhotos } from './inat.js';
 import { matchName, countRecords } from './gbif.js';
 import { monthsToRange } from '../util.js';
 
@@ -37,8 +37,22 @@ export async function checkPlant(plant, place, signal) {
     await Promise.all([
         (async () => {
             if (!out.taxon || !place) return;
-            try { out.bloom = await bloomNear(out.taxon.id, place, signal); }
-            catch (err) { if (signal?.aborted) throw err; out.errors.push('iNaturalist flowering records'); }
+            try {
+                out.bloom = await bloomNear(out.taxon.id, place, signal);
+                if (out.bloom.total > 0) {
+                    try {
+                        out.bloom.photos = await floweringPhotos(
+                            out.taxon.id, place.lat, place.lng, out.bloom.radius, signal,
+                        );
+                    } catch (err) {
+                        if (signal?.aborted) throw err;
+                        out.errors.push('iNaturalist bloom photos');
+                    }
+                }
+            } catch (err) {
+                if (signal?.aborted) throw err;
+                out.errors.push('iNaturalist flowering records');
+            }
         })(),
         (async () => {
             if (!sci || !place?.gadm?.state) return;
