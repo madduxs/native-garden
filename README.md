@@ -12,6 +12,7 @@ The purpose of this app is to create a native garden planner/tracker to help fin
 ## Future Features
 
 - ~~Add pictures of blooms for details~~
+- Auto hardiness zone based on location
 - Make a simple or detailed info box
 - Make a Recommended Plants/Trees/Shrubs
 - Expand plant library (Only worry about natives)

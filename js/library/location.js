@@ -14,8 +14,36 @@
 import { reverseGeocode } from './gbif.js';
 import { findPlaceIds } from './inat.js';
 import { fetchJSON } from '../util.js';
+import { ZONES } from '../model.js';
 
 const round2 = (v) => Math.round(v * 100) / 100;
+
+//SJM: auto looks up hardiness zone. 
+const USDA_ZONE_QUERY =
+    'https://services1.arcgis.com/SyUSN23vOoYdfLC8/arcgis/rest/services/PHZM_Links_with_zones/FeatureServer/6/query';
+
+export async function hardinessZoneAt(lat, lng) {
+    const params = new URLSearchParams({
+        geometry: `${lng},${lat}`,
+        geometryType: 'esriGeometryPoint',
+        inSR: '4326',
+        spatialRel: 'esriSpatialRelIntersects',
+        outFields: 'ClassName',
+        returnGeometry: 'false',
+        f: 'json',
+    });
+
+    const result = await fetchJSON(`${USDA_ZONE_QUERY}?${params}`);
+    if (result.error) {
+        throw new Error(result.error.message || 'USDA zone lookup failed.');
+    }
+
+    const zone = result.features?.[0]?.attributes?.ClassName;
+    if (!zone) return '';
+    if (!ZONES.includes(zone)) throw new Error(`Unexpected USDA zone: ${zone}`);
+
+    return zone;
+}
 
 /* Ask the browser where we are. Rejects with a readable message. */
 export function currentPosition() {

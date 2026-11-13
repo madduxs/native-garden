@@ -21,7 +21,7 @@ import { Store } from '../store/index.js';
 import { firebaseReady, APP_NAME } from '../config.js';
 import { $, h, toast, num } from '../util.js';
 import { rectOutline, outlineBounds, parseGardenFile, ZONES } from '../model.js';
-import { currentPosition, searchAddress, placeFromPoint } from '../library/location.js';
+import { currentPosition, searchAddress, placeFromPoint, hardinessZoneAt } from '../library/location.js';
 import { confirmButton } from './common.js';
 import { importParsed } from './toolbar.js';
 
@@ -64,7 +64,7 @@ function currentView() {
  * A self-contained widget: it redraws only its own insides, so typing in the
  * rest of the form isn't interrupted. Read the chosen place from .place.
  */
-function locationWidget(initial) {
+function locationWidget(initial, onPlacePicked = null) {
     let place = initial || null;
     const now = h('div', { class: 'loc-now', 'aria-live': 'polite' });
     const results = h('div', { class: 'rows loc-results' });
@@ -82,6 +82,7 @@ function locationWidget(initial) {
         try {
             place = await placeFromPoint(lat, lng);
             show();
+            if (onPlacePicked) await onPlacePicked(place);
         } catch (err) {
             show("Couldn't look that place up. Check your connection.");
         }
@@ -154,9 +155,39 @@ function zoneField(value) {
         if (z === value) o.selected = true;
         s.append(o);
     }
+
     const el = h('label', {}, 'USDA hardiness zone', s,
         h('a', { href: 'https://planthardiness.ars.usda.gov/', target: '_blank', rel: 'noopener', class: 'small-link' }, 'Look up your zone'));
-    return { el, get value() { return s.value; } };
+    const status = h('p', { class: 'note full' });
+    status.hidden = true;
+
+    return {
+        el,
+        status,
+        get value() { return s.value; },
+        set value(v) {
+            if (v === '' || ZONES.includes(v)) s.value = v;
+        },
+    };
+}
+
+async function suggestZone(place, field) {
+    field.status.hidden = false;
+    field.status.textContent = 'Looking up the USDA zone…';
+
+    try {
+        const zone = await hardinessZoneAt(place.lat, place.lng);
+        if (!zone) {
+            field.status.textContent = 'No USDA zone found. Select one manually.';
+            return;
+        }
+
+        field.value = zone;
+        field.status.textContent = `Suggested by the 2023 USDA map: ${zone}. You can change it.`;
+    } catch (err) {
+        console.warn('USDA hardiness zone lookup failed:', err);
+        field.status.textContent = 'Could not detect a zone. Select one manually.';
+    }
 }
 
 /* ---------- each view ---------- */
@@ -259,8 +290,8 @@ function newView() {
     const imp = H.pendingImport;
     const fileB = imp && imp.meta.outline ? outlineBounds(imp.meta.outline) : null;
     const name = h('input', { type: 'text', maxlength: 80, required: true, placeholder: 'e.g. Backyard pollinator garden', value: imp ? imp.meta.name : '' });
-    const loc = locationWidget(null);
     const zone = zoneField('');
+    const loc = locationWidget(null, (place) => suggestZone(place, zone));
     const w = h('input', { type: 'number', min: 10, max: 1000, step: 1, value: fileB ? Math.round(fileB.w) : 60 });
     const d = h('input', { type: 'number', min: 10, max: 1000, step: 1, value: fileB ? Math.round(fileB.d) : 40 });
     const create = h('button', { class: 'btn primary', type: 'submit', text: 'Create garden' });
@@ -268,6 +299,7 @@ function newView() {
         h('label', { class: 'full' }, 'Name', name),
         h('div', { class: 'full' }, h('div', { class: 'label', text: 'Where is it?' }), loc.el),
         zone.el,
+        zone.status,
         fileB ? h('p', { class: 'note full', text: `Using the outline from the file (${Math.round(fileB.w)} × ${Math.round(fileB.d)} ft).` }) : null,
         fileB ? null : h('label', {}, 'Width, east–west (ft)', w),
         fileB ? null : h('label', {}, 'Depth, north–south (ft)', d),
@@ -302,12 +334,15 @@ function newView() {
 function settingsView() {
     const m = S.meta;
     const name = h('input', { type: 'text', maxlength: 80, required: true, value: m.name });
-    const loc = locationWidget(m.place);
     const zone = zoneField(m.zone);
+    const loc = locationWidget(m.place, (place) => suggestZone(place, zone));
+
+    if (m.place && !m.zone) suggestZone(m.place, zone);
     const form = h('form', { class: 'form' },
         h('label', { class: 'full' }, 'Name', name),
         h('div', { class: 'full' }, h('div', { class: 'label', text: 'Location' }), loc.el),
         zone.el,
+        zone.status,
         h('p', { class: 'note full', text: `Outline: ${Math.round(bounds().w)} × ${Math.round(bounds().d)} ft. To change its shape, close this and turn on Edit layout.` }),
         h('div', { class: 'actions full' },
             h('button', { class: 'btn primary', type: 'submit', text: 'Save' }),
