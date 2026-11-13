@@ -21,4 +21,5 @@ The purpose of this app is to create a native garden planner/tracker to help fin
 - Bird feeder information(What seeds/suet)
 - Add ability to have bird nests/feeders to be on same object as tree
 - Add bird listening station info to keep track of birds visiting
+- Add a poisonous and invasive tags for plants that are native but are dangerous
   
