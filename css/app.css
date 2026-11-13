@@ -355,6 +355,10 @@ body.read-only #tEdit, body.read-only #tAdd { display: none; }
 .photo { margin: 10px 0 8px; }
 .photo img { display: block; width: 100%; max-height: 220px; object-fit: cover; border-radius: 8px; background: var(--paper-2); }
 .photo figcaption { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.35; }
+.bloom-photos { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin: 8px 0; }
+.bloom-photo .photo { margin: 4px 0 2px; }
+.bloom-photo .photo img { height: 130px; }
+.bloom-photo > a { font-size: 11px; }
 
 /* Checkbox groups in forms, and wildlife chips */
 .checks { display: flex; flex-wrap: wrap; gap: 6px 14px; padding-top: 2px; }

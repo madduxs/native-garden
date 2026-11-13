@@ -46,10 +46,10 @@ export function tagChips(tags) {
 }
 
 /* A photo with its credit line underneath (photos from iNaturalist carry a license in the credit). */
-export function photoFigure(src, credit) {
+export function photoFigure(src, credit, alt = '') {
     if (!src) return null;
     return h('figure', { class: 'photo' },
-        h('img', { src, alt: '', loading: 'lazy', referrerpolicy: 'no-referrer' }),
+        h('img', { src, alt, loading: 'lazy', referrerpolicy: 'no-referrer' }),
         credit ? h('figcaption', { text: credit }) : null);
 }
 
